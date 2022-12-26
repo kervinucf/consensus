@@ -1,0 +1,64 @@
+@app.route("/local_time", methods=['POST'])
+def local_time():
+    location = request.json["geo"]
+
+    def get_local_time(loc):
+        return TimeDateAPI(loc)
+
+    return Response(
+        ENDPOINT=f"/time_zone/{location}",
+        REDISCACHE=cache,
+        TTL=convert_to_seconds(minutes=10),
+        UPDATER=get_local_time,
+        PARAMS=location,
+        FALLBACK=DatabaseEntry(db=db, table='Weather', column=location))
+
+
+@app.route("/global_time_of_day", methods=['GET'])
+def get_global_time_of_day():
+    global_time_of_day = {}
+
+    def find_global_time_of_day():
+        locations = available_locations()['data']
+        for v in locations.items():
+            try:
+                print(v)
+                time_of_day = v[1]['time']['time_of_day']
+                location_found = v[0]
+                try:
+                    list_of_locations = global_time_of_day[time_of_day]
+                    list_of_locations.append(location_found)
+                    global_time_of_day[time_of_day] = list_of_locations
+                except KeyError:
+                    global_time_of_day[time_of_day] = [location_found]
+            except KeyError:
+                pass
+
+        return global_time_of_day
+
+    return Response(
+        ENDPOINT=f"/global_time_of_day",
+        REDISCACHE=cache,
+        TTL=convert_to_seconds(minutes=10),
+        UPDATER=find_global_time_of_day,
+        PARAMS=None,
+        FALLBACK=DatabaseEntry(db=db, table='Weather', column="Time Of Day")
+    )
+
+
+@app.route("/time_of_day", methods=['POST'])
+def time_of_day():
+    day_time = request.json["time_of_day"]
+
+    def get_time_of_day(tod):
+        locations = get_global_time_of_day()['data']
+        return locations[tod]
+
+    return Response(
+        ENDPOINT=f"/time_of_day/{day_time}",
+        REDISCACHE=cache,
+        TTL=convert_to_seconds(minutes=10),
+        UPDATER=get_time_of_day,
+        PARAMS=day_time,
+        FALLBACK=None
+    )

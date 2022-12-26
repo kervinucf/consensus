@@ -1,0 +1,20 @@
+python-weather
+
+
+# ##############################
+py2neo
+requests
+pymongo
+python-dotenv
+cleantext
+geopy
+flask
+redis
+python-dateutil
+bs4
+flask_sock
+flask_cors
+pytz
+tzwhere
+emoji-country-flag
+pycountry
